@@ -430,6 +430,7 @@ namespace Crawler
                     sqlString = "INSERT INTO Raw_ProductInfo (Name, UrlNumber, ItemNumber, Category, Price, Shipping, Discount,  ImageLink, Url) VALUES ('" + productName.Replace("'", "''") + "','" + UrlNum + "','" + itemNumber + "','" + stSubCategories + "'," + price + "," + shipping + "," + "'" + discount + "','" + imageUrl.Replace("'", "''") + "','" + productUrl.Replace("'", "''") + "')";
                     cmd.CommandText = sqlString;
                     cmd.ExecuteNonQuery();
+                    nImportProducts++;
 
                     sqlString = "INSERT INTO Costco_Categories (" + columns + ") VALUES (" + values + ")";
                     cmd.CommandText = sqlString;
@@ -702,40 +703,8 @@ namespace Crawler
             emailMessage += "</br>";
             emailMessage += "</br>";
 
-            emailMessage += "<p>nCategoryUrlArray: " + nCategoryUrlArray.ToString() + "</p></br>";
-            emailMessage += "<p>nProductListPages: " + nProductListPages.ToString() + "</p></br>";
-            emailMessage += "<p>nProductUrlArray: " + nProductUrlArray.ToString() + "</p></br>";
-
-            emailMessage += "</br>";
-            emailMessage += "</br>";
-
-            emailMessage += "<p>Product Scanned: " + nScanProducts.ToString() + "</p></br>";
-            emailMessage += "<p>Product Imported: " + nImportProducts.ToString() + "</p></br>";
-            emailMessage += "<p>Product Skipped: " + nSkipProducts.ToString() + "</p></br>";
-            emailMessage += "<p>Product Errored: " + nImportErrors.ToString() + "</p></br>";
-
-            emailMessage += "</br>";
-            emailMessage += "</br>";
-
-            emailMessage += "<h3>First try fix products: (" + firstTryResult.Count.ToString() + ")</h3>" + "</br>";
-            emailMessage += "</br>";
-
-            foreach (string a in firstTryResult)
-            {
-                emailMessage += "<p>" + a + "</p></br>";
-            }
-
-            emailMessage += "</br>";
-            emailMessage += "</br>";
-
-            emailMessage += "<h3>Second try fix products: (" + secondTryResult.Count.ToString() + ")</h3>" + "</br>";
-            emailMessage += "</br>";
-
-            foreach (string a in secondTryResult)
-            {
-                emailMessage += "<p>" + a + "</p></br>";
-            }
-
+            emailMessage += "<p>Product scanned: " + productUrlArray.Count.ToString() + "</p></br>";
+            emailMessage += "<p>Product imported: " + nImportProducts.ToString() + "</p></br>";
             emailMessage += "</br>";
             emailMessage += "</br>";
 
