@@ -86,6 +86,14 @@ namespace Crawler
 
             GetProductInfo();
 
+            SecondTry(1);
+
+            GetProductInfo(false);
+
+            SecondTry(2);
+
+            GetProductInfo(false);
+
             PopulateTables();
 
             CompareProducts();
@@ -458,6 +466,63 @@ namespace Crawler
             //MessageBox.Show("Start: " + startDT.ToLongTimeString() + "; End: " + endDT.ToLongTimeString());
         }
 
+        private void SecondTry(int i = 0)
+        {
+            productUrlArray.Clear();
+
+            SqlConnection cn = new SqlConnection(connectionString);
+            SqlCommand cmd = new SqlCommand();
+            cmd.Connection = cn;
+
+            cn.Open();
+
+            string sqlString = @"select * from ProductInfo p 
+                        where 
+                        not exists
+                        (select 1 from Raw_ProductInfo sp where sp.UrlNumber = p.UrlNumber)";
+
+            //string sqlString = @"select Url from Import_Skips 
+            //            where SkipPoint = 'Product not found'";
+
+            cmd.CommandText = sqlString;
+            SqlDataReader rdr = cmd.ExecuteReader();
+
+            while (rdr.Read())
+            {
+                productUrlArray.Add(rdr["Url"].ToString());
+                //if (i == 1)
+                //{
+                //    firstTry.Add(rdr["Url"].ToString());
+                //}
+                //else if (i == 2)
+                //{
+                //    secondTry.Add(rdr["Url"].ToString());
+                //}
+            }
+
+            rdr.Close();
+
+            //sqlString = @"select Url from Import_Errors";
+
+            //cmd.CommandText = sqlString;
+            //rdr = cmd.ExecuteReader();
+
+            //while (rdr.Read())
+            //{
+            //    productUrlArray.Add(rdr["Url"].ToString());
+            //}
+
+            //rdr.Close();
+
+            //sqlString = @"delete from Import_Skips 
+            //            where SkipPoint = 'Product not found'";
+
+            //cmd.CommandText = sqlString;
+            //cmd.ExecuteNonQuery();
+
+            cn.Close();
+        }
+
         private void PopulateTables()
         {
             SqlConnection cn = new SqlConnection(connectionString);
@@ -697,7 +762,7 @@ namespace Crawler
         private void SendEmail()
         {
             emailMessage = "<p>Start: " + startDT.ToLongTimeString() + "</p></br>";
-            emailMessage += "<p>Productlist End: " + productListEndDT.ToLongTimeString() + "</p></br>";
+            //emailMessage += "<p>Productlist End: " + productListEndDT.ToLongTimeString() + "</p></br>";
             emailMessage += "<p>End: " + endDT.ToLongTimeString() + "</p></br>";
 
             emailMessage += "</br>";
