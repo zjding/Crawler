@@ -189,7 +189,7 @@ namespace Crawler
                 AddProductUrls(pl);
             }
 
-            
+            nScanProducts = productUrlArray.Count;
 
             driver.Close();
 
@@ -768,7 +768,7 @@ namespace Crawler
             emailMessage += "</br>";
             emailMessage += "</br>";
 
-            emailMessage += "<p>Product scanned: " + productUrlArray.Count.ToString() + "</p></br>";
+            emailMessage += "<p>Product scanned: " + nScanProducts.ToString() + "</p></br>";
             emailMessage += "<p>Product imported: " + nImportProducts.ToString() + "</p></br>";
             emailMessage += "</br>";
             emailMessage += "</br>";
