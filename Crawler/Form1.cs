@@ -920,8 +920,8 @@ namespace Crawler
             cmd.CommandText = sqlString;
             cmd.ExecuteNonQuery();
 
-            sqlString = @"insert into dbo.staging_productInfo (Name, urlNumber, itemnumber, Category, price, shipping, discount, details, specification, imageLink, url)
-                        select distinct Name, urlNumber, itemnumber, Category, price, shipping, discount, details, specification, imageLink, url
+            sqlString = @"insert into dbo.staging_productInfo (Name, urlNumber, itemnumber, Category, price, shipping, discount, details, specification, imageLink, url, options)
+                        select distinct Name, urlNumber, itemnumber, Category, price, shipping, discount, details, specification, imageLink, url, options
                         from dbo.Raw_ProductInfo
                         where Price > 0
                         order by UrlNumber";
@@ -929,19 +929,19 @@ namespace Crawler
             cmd.CommandText = sqlString;
             cmd.ExecuteNonQuery();
 
-            // copy to staging_productInfo_filtered
-            sqlString = "TRUNCATE TABLE Staging_ProductInfo_Filtered";
-            cmd.CommandText = sqlString;
-            cmd.ExecuteNonQuery();
+            //// copy to staging_productInfo_filtered
+            //sqlString = "TRUNCATE TABLE Staging_ProductInfo_Filtered";
+            //cmd.CommandText = sqlString;
+            //cmd.ExecuteNonQuery();
 
-            sqlString = @"insert into dbo.Staging_ProductInfo_Filtered(Name, urlNumber, itemnumber, Category, price, shipping, discount, details, specification, imageLink, url)
-                        select distinct Name, urlNumber, itemnumber, Category, price, shipping, discount, details, specification, imageLink, url 
-                        from dbo.Raw_ProductInfo 
-                        where Price > 0 and Price < 100 and Shipping = 0
-                        order by UrlNumber";
+            //sqlString = @"insert into dbo.Staging_ProductInfo_Filtered(Name, urlNumber, itemnumber, Category, price, shipping, discount, details, specification, imageLink, url)
+            //            select distinct Name, urlNumber, itemnumber, Category, price, shipping, discount, details, specification, imageLink, url 
+            //            from dbo.Raw_ProductInfo 
+            //            where Price > 0 and Price < 100 and Shipping = 0
+            //            order by UrlNumber";
 
-            cmd.CommandText = sqlString;
-            cmd.ExecuteNonQuery();
+            //cmd.CommandText = sqlString;
+            //cmd.ExecuteNonQuery();
 
 
         }
@@ -1137,9 +1137,9 @@ namespace Crawler
 
             cn.Open();
 
-            // price up
-            string sqlString = @"insert into [dbo].[Archieve] (Name, urlNumber, itemnumber, Category, price, shipping, discount, details, specification, imageLink, url, ImportedDT)
-                                select distinct Name, urlNumber, itemnumber, Category, price, shipping, discount, details, specification, imageLink, url, GETDATE()
+            // Archieve
+            string sqlString = @"insert into [dbo].[Archieve] (Name, urlNumber, itemnumber, Category, price, shipping, limit, discount, details, specification, imageLink, url, ImportedDT, NumberOfImage, Options)
+                                select distinct Name, urlNumber, itemnumber, Category, price, shipping, limit, discount, details, specification, imageLink, url, GETDATE(), NumberOfImage, Options
                                 from  [dbo].[ProductInfo]";
             cmd.CommandText = sqlString;
             cmd.ExecuteNonQuery();
@@ -1148,8 +1148,8 @@ namespace Crawler
             cmd.CommandText = sqlString;
             cmd.ExecuteNonQuery();
 
-            sqlString = @"insert into [dbo].[ProductInfo] (Name, urlNumber, itemnumber, Category, price, shipping, discount, details, specification, imageLink, url)
-                        select distinct Name, urlNumber, itemnumber, Category, price, shipping, discount, details, specification, imageLink, url
+            sqlString = @"insert into [dbo].[ProductInfo] (Name, urlNumber, itemnumber, Category, price, shipping, discount, details, specification, imageLink, url, options)
+                        select distinct Name, urlNumber, itemnumber, Category, price, shipping, discount, details, specification, imageLink, url, options
                         from  dbo.staging_productInfo";
             cmd.CommandText = sqlString;
             cmd.ExecuteNonQuery();
