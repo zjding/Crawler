@@ -511,17 +511,17 @@ namespace Crawler
                                     IWebElement thumb_holder = driver.FindElement(By.Id("thumb_holder"));
                                     var thumblis = thumb_holder.FindElements(By.TagName("li"));
 
-                                    imageOptions += option0String + /*swatch0 +*/ ":";
+                                    imageOptions += option0String + /*swatch0 +*/ "=";
 
                                     foreach (IWebElement li in thumblis)
                                     {
                                         string imgUrl = li.FindElement(By.TagName("img")).GetAttribute("src");
                                         imgUrl = imgUrl.Replace(@"/50-", @"/500-");
-                                        imageOptions += imgUrl + ";";
+                                        imageOptions += imgUrl + "|";
                                     }
 
                                     imageOptions = imageOptions.Substring(0, imageOptions.Length - 1);
-                                    imageOptions += "|";
+                                    imageOptions += "~";
                                 }
                             }
 
