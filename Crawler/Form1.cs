@@ -21,8 +21,8 @@ namespace Crawler
 {
     public partial class Form1 : Form
     {
-        //string connectionString = "Server=tcp:zjding.database.windows.net,1433;Initial Catalog=Costco;Persist Security Info=False;User ID=zjding;Password=G4indigo;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;";
-        string connectionString = "Data Source=DESKTOP-ABEPKAT;Initial Catalog=Costco;Persist Security Info=True;User ID=sa;Password=G4indigo";
+        string connectionString = "Server=tcp:zjding.database.windows.net,1433;Initial Catalog=Costco;Persist Security Info=False;User ID=zjding;Password=G4indigo;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;";
+        //string connectionString = "Data Source=DESKTOP-ABEPKAT;Initial Catalog=Costco;Persist Security Info=True;User ID=sa;Password=G4indigo";
         ScrapingBrowser Browser = new ScrapingBrowser();
         IWebDriver driver;
 
