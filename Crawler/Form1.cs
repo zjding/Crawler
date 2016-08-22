@@ -86,6 +86,12 @@ namespace Crawler
 
             GetProductUrls_New();
 
+            ////// test
+            //productUrlArray.Clear();
+            //productUrlArray.Add("http://www.costco.com/10-Drawer-Mobile-Organizer-Cart-by-ECR4Kids.product.11134074.html");
+            //GetProductInfo(false);
+            //// end test
+
             GetProductInfo();
 
             SecondTry(1);
@@ -1131,7 +1137,7 @@ namespace Crawler
 
                 using (SmtpClient smtp = new SmtpClient("smtp.gmail.com", 587))
                 {
-                    smtp.Credentials = new NetworkCredential("zjding@gmail.com", "yueding00");
+                    smtp.Credentials = new NetworkCredential("zjding@gmail.com", "G4indigo");
                     smtp.EnableSsl = true;
                     smtp.Send(mail);
                 }
