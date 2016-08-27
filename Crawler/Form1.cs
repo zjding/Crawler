@@ -78,7 +78,14 @@ namespace Crawler
         {
             SetConnectionString();
 
-            runCrawl();
+            //runCrawl();
+
+            int nEBayListingChangePriceUp = 0;
+            int nEBayListingChangePriceDown = 0;
+            int nEBayListingChangeDiscontinue = 0;
+            int nEBayListingChangeOptions = 0;
+            CheckEBayListing(out nEBayListingChangePriceUp, out nEBayListingChangePriceDown, out nEBayListingChangeDiscontinue, out nEBayListingChangeOptions);
+
             this.Close();
         }
 
@@ -127,7 +134,7 @@ namespace Crawler
             cmd.Connection = cn;
             cn.Open();
 
-            string sqlString = @"SELECT CostcoUrl FROM eBay_CurrentListings";
+            string sqlString = @"SELECT CostcoUrl FROM eBay_CurrentListings WHERE DeleteDT is NULL";
 
             cmd.CommandText = sqlString;
 
@@ -808,6 +815,7 @@ namespace Crawler
             int nEBayListingChangePriceDown = 0;
             int nEBayListingChangeDiscontinue = 0;
             int nEBayListingChangeOptions = 0;
+
             CompareEBayListings(out nEBayListingChangePriceUp, out nEBayListingChangePriceDown, out nEBayListingChangeDiscontinue, out nEBayListingChangeOptions );
         }
 
@@ -821,8 +829,18 @@ namespace Crawler
 
             cn.Open();
 
+            string sqlString = string.Empty;
+
+            sqlString = @"  TRUNCATE TABLE CostcoInventoryChange_Discontinue; 
+                            TRUNCATE TABLE CostcoInventoryChange_New; 
+                            TRUNCATE TABLE CostcoInventoryChange_PriceUp;
+                            TRUNCATE TABLE CostcoInventoryChange_PriceDown;   ";
+
+            cmd.CommandText = sqlString;
+            cmd.ExecuteNonQuery();
+
             // price up
-            string sqlString = @"select s.Name, s.Price as newPrice, p.Price as oldPrice, s.Url 
+            sqlString = @"select s.Name, s.Price as newPrice, p.Price as oldPrice, s.Url 
                                 from [dbo].[Staging_ProductInfo] s, [dbo].[ProductInfo] p
                                 where s.UrlNumber = p.UrlNumber
                                 and s.Price > p.Price";
@@ -837,6 +855,15 @@ namespace Crawler
             }
 
             rdr.Close();
+
+            sqlString = @"  INSERT INTO CostcoInventoryChange_PriceUp (Name, CostcoUrl, UrlNumber, CostcoOldPrice, CostcoNewPrice) 
+                            SELECT s.Name, s.Url, s.UrlNumber, p.Price, s.Price
+                            FROM [dbo].[Staging_ProductInfo] s, [dbo].[ProductInfo] p
+                            WHERE s.UrlNumber = p.UrlNumber
+                            AND s.Price > p.Price ";
+
+            cmd.CommandText = sqlString;
+            cmd.ExecuteNonQuery();
 
             // price down
             sqlString = @"select s.Name, s.Price as newPrice, p.Price as oldPrice, s.Url from 
@@ -855,6 +882,15 @@ namespace Crawler
 
             rdr.Close();
 
+            sqlString = @"  INSERT INTO CostcoInventoryChange_PriceDown (Name, CostcoUrl, UrlNumber, CostcoOldPrice, CostcoNewPrice) 
+                            SELECT s.Name, s.Url, s.UrlNumber, p.Price, s.Price
+                            FROM [dbo].[Staging_ProductInfo] s, [dbo].[ProductInfo] p
+                            WHERE s.UrlNumber = p.UrlNumber
+                            AND s.Price < p.Price ";
+
+            cmd.CommandText = sqlString;
+            cmd.ExecuteNonQuery();
+
             // new products
             sqlString = @"select * from Staging_ProductInfo sp
                         where 
@@ -872,6 +908,15 @@ namespace Crawler
 
             rdr.Close();
 
+            sqlString = @"  INSERT INTO CostcoInverntoryChange_New
+                            SELECT * from Staging_ProductInfo sp
+                            WHERE 
+                            NOT EXISTS
+                            (SELECT 1 FROM ProductInfo p  WHERE sp.UrlNumber = p.UrlNumber)";
+
+            cmd.CommandText = sqlString;
+            cmd.ExecuteNonQuery();
+
             // discontinued products
             sqlString = @"select * from ProductInfo p 
                         where 
@@ -888,6 +933,16 @@ namespace Crawler
             }
 
             rdr.Close();
+
+            sqlString = @"  INSERT INTO CostcoInverntoryChange_Discontinue (Name, CostcoUrl, UrlNumber)
+                            SELECT p.Name, p.Url, p.UrlNumber 
+                            FROM ProductInfo p 
+                            WHERE 
+                            NOT EXISTS
+                            (SELECT 1 FROM Staging_ProductInfo sp WHERE sp.UrlNumber = p.UrlNumber)";
+
+            cmd.CommandText = sqlString;
+            cmd.ExecuteNonQuery();
 
             // stockChange products
             sqlString = @"select s.Name, s.Url from 
@@ -911,20 +966,40 @@ namespace Crawler
         {
             nEBayListingChangePriceUp = 0;
 
+            string sqlString;
+
             SqlConnection cn = new SqlConnection(connectionString);
+
             SqlCommand cmd = new SqlCommand();
             cmd.Connection = cn;
 
-            //SqlDataReader rdr;
-
             cn.Open();
 
+            sqlString = "TRUNCATE TABLE eBayListingChange_PriceUp";
+            cmd.CommandText = sqlString;
+            cmd.ExecuteNonQuery();
+
+            sqlString = "TRUNCATE TABLE eBayListingChange_PriceDown";
+            cmd.CommandText = sqlString;
+            cmd.ExecuteNonQuery();
+
+            sqlString = "TRUNCATE TABLE eBayListingChange_Discontinue";
+            cmd.CommandText = sqlString;
+            cmd.ExecuteNonQuery();
+
+            sqlString = "TRUNCATE TABLE eBayListingChange_OptionChange";
+            cmd.CommandText = sqlString;
+            cmd.ExecuteNonQuery();
+
+            
+
             // eBay listing price up
-            string sqlString = @"INSERT INTO [dbo].[eBayListingChange_PriceUp] (Name, CostcoUrl, UrlNumber, eBayItemNumber, CostcoOldPrice, CostcoNewPrice, eBayListingOldPrice)
+            sqlString = @"INSERT INTO [dbo].[eBayListingChange_PriceUp] (Name, CostcoUrl, UrlNumber, eBayItemNumber, CostcoOldPrice, CostcoNewPrice, eBayListingOldPrice)
                                 select p.name as Name, p.Url as CostcoUrl, p.UrlNumber as UrlNumber, l.eBayItemNumber as eBayItemNumber, p.Price as CostcoOldPrice, s.Price as CostcoNewPrice, l.eBayListingPrice as eBayListingOldPrice
                                 from [dbo].[Staging_ProductInfo] s, [dbo].[ProductInfo] p, [dbo].[eBay_CurrentListings] l
                                 where s.UrlNumber = p.UrlNumber
                                 and s.UrlNumber = l.CostcoUrlNumber
+                                and l.DeleteDT is NULL
                                 and s.Price > p.Price";
 
             cmd.CommandText = sqlString;
@@ -952,6 +1027,7 @@ namespace Crawler
                                 from [dbo].[Staging_ProductInfo] s, [dbo].[ProductInfo] p, [dbo].[eBay_CurrentListings] l
                                 where s.UrlNumber = p.UrlNumber
                                 and s.UrlNumber = l.CostcoUrlNumber
+                                and l.DeleteDT is NULL
                                 and s.Price < p.Price";
 
             cmd.CommandText = sqlString;
@@ -977,7 +1053,8 @@ namespace Crawler
             sqlString = @"INSERT INTO [dbo].[eBayListingChange_Discontinue] (Name, CostcoUrl, UrlNumber, eBayItemNumber)
                         SELECT p.name, p.CostcoUrl, p.CostcoUrlNumber, p.CostcoUrlNumber
                         FROM [dbo].[eBay_CurrentListings] p
-                        WHERE not exists (SELECT 1 FROM Staging_ProductInfo sp where sp.UrlNumber = p.CostcoUrlNumber)";
+                        WHERE not exists (SELECT 1 FROM Staging_ProductInfo sp where sp.UrlNumber = p.CostcoUrlNumber)
+                        AND p.DeleteDT is NULL";
             cmd.CommandText = sqlString;
             cmd.ExecuteNonQuery();
 
@@ -1007,11 +1084,13 @@ namespace Crawler
             //cmd.ExecuteNonQuery();
 
             // options change 
-            sqlString = @"INSERT INTO [dbo].[eBayListingChange_OptionChange] (Name, CostcoUrl, UrlNumber, eBayItemNumber, CostcoOldOptions, CostcoNewOptions)
-                        select s.name as Name, s.Url as CostcoUrl, s.UrlNumber as UrlNumber, l.eBayItemNumber as eBayItemNumber, l.CostcoOptions as CostcoOldOptions, s.Options as CostcoNewOptions
-                        from [dbo].[Staging_ProductInfo] s, [dbo].[eBay_CurrentListings] l
+            sqlString = @"INSERT INTO [dbo].[eBayListingChange_OptionChange] (Name, CostcoUrl, UrlNumber, eBayItemNumber, CostcoOldOptions, CostcoNewOptions, CostcoNewImageOptions)
+                        select s.name as Name, s.Url as CostcoUrl, s.UrlNumber as UrlNumber, l.eBayItemNumber as eBayItemNumber, p.Options as CostcoOldOptions, s.Options as CostcoNewOptions, s.ImageOptions as CostcoNewImageOptions
+                        from [dbo].[Staging_ProductInfo] s, [dbo].[eBay_CurrentListings] l, [dbo].[ProductInfo] p
                         where s.UrlNumber = l.CostcoUrlNumber
-                        and s.Options <> l.CostcoOptions";
+                        and s.UrlNumber = p.UrlNumber
+                        and l.DeleteDT is NULL
+                        and s.Options <> p.Options";
             cmd.CommandText = sqlString;
             cmd.ExecuteNonQuery();
 
