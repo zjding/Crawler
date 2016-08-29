@@ -78,13 +78,13 @@ namespace Crawler
         {
             SetConnectionString();
 
-            //runCrawl();
+            runCrawl();
 
-            int nEBayListingChangePriceUp = 0;
-            int nEBayListingChangePriceDown = 0;
-            int nEBayListingChangeDiscontinue = 0;
-            int nEBayListingChangeOptions = 0;
-            CheckEBayListing(out nEBayListingChangePriceUp, out nEBayListingChangePriceDown, out nEBayListingChangeDiscontinue, out nEBayListingChangeOptions);
+            //int nEBayListingChangePriceUp = 0;
+            //int nEBayListingChangePriceDown = 0;
+            //int nEBayListingChangeDiscontinue = 0;
+            //int nEBayListingChangeOptions = 0;
+            //CheckEBayListing(out nEBayListingChangePriceUp, out nEBayListingChangePriceDown, out nEBayListingChangeDiscontinue, out nEBayListingChangeOptions);
 
             this.Close();
         }
@@ -908,7 +908,7 @@ namespace Crawler
 
             rdr.Close();
 
-            sqlString = @"  INSERT INTO CostcoInverntoryChange_New
+            sqlString = @"  INSERT INTO CostcoInventoryChange_New
                             SELECT * from Staging_ProductInfo sp
                             WHERE 
                             NOT EXISTS
@@ -934,7 +934,7 @@ namespace Crawler
 
             rdr.Close();
 
-            sqlString = @"  INSERT INTO CostcoInverntoryChange_Discontinue (Name, CostcoUrl, UrlNumber)
+            sqlString = @"  INSERT INTO CostcoInventoryChange_Discontinue (Name, CostcoUrl, UrlNumber)
                             SELECT p.Name, p.Url, p.UrlNumber 
                             FROM ProductInfo p 
                             WHERE 
