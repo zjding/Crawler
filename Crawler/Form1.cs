@@ -666,11 +666,17 @@ namespace Crawler
                     foreach (var c in stSubCategories.Split('|'))
                     {
                         sqlString += "Category" + j.ToString() + "='" + c + "'";
-                        if (j < stSubCategories.Split('|').Count())
+                        sqlString += " AND ";
+
+                        j++;
+                    }
+                    for (int k = j; k <= 8; k++)
+                    {
+                        sqlString += "Category" + k.ToString() + "=NULL";
+                        if (k < 8)
                         {
                             sqlString += " AND ";
                         }
-                        j++;
                     }
                     sqlString += @") BEGIN
                                     INSERT INTO Costco_Categories (" + columns + ") VALUES (" + values + ") END";
@@ -682,11 +688,17 @@ namespace Crawler
                     foreach (var c in stSubCategories.Split('|'))
                     {
                         sqlString += "Category" + j.ToString() + "='" + c + "'";
-                        if (j < stSubCategories.Split('|').Count())
+                        sqlString += " AND ";
+
+                        j++;
+                    }
+                    for (int k = j; k <= 8; k++)
+                    {
+                        sqlString += "Category" + k.ToString() + "=NULL";
+                        if (k < 8)
                         {
                             sqlString += " AND ";
                         }
-                        j++;
                     }
                     sqlString += @") BEGIN
                                     INSERT INTO Costco_eBay_Categories (" + columns + ") VALUES (" + values + ") END";
@@ -832,7 +844,7 @@ namespace Crawler
             string sqlString = string.Empty;
 
             sqlString = @"  TRUNCATE TABLE CostcoInventoryChange_Discontinue; 
-                            TRUNCATE TABLE CostcoInventoryChange_New; 
+                            DELETE FROM CostcoInventoryChange_New where InsertTime < DATEADD(day, -5, GETDATE()); 
                             TRUNCATE TABLE CostcoInventoryChange_PriceUp;
                             TRUNCATE TABLE CostcoInventoryChange_PriceDown;   ";
 
@@ -908,11 +920,45 @@ namespace Crawler
 
             rdr.Close();
 
-            sqlString = @"  INSERT INTO CostcoInventoryChange_New
-                            SELECT * from Staging_ProductInfo sp
+            sqlString = @"  INSERT INTO CostcoInventoryChange_New ([Name]
+                                                                  ,[UrlNumber]
+                                                                  ,[ItemNumber]
+                                                                  ,[Category]
+                                                                  ,[Price]
+                                                                  ,[Shipping]
+                                                                  ,[Limit]
+                                                                  ,[Discount]
+                                                                  ,[Details]
+                                                                  ,[Specification]
+                                                                  ,[CostcoUrl]
+                                                                  ,[Options]
+                                                                  ,[ImageLink]
+                                                                  ,[ImageOptions]
+                                                                  ,[NumberOfImage]
+                                                                  ,InsertTime)
+                            SELECT [Name]
+                                  ,[UrlNumber]
+                                  ,[ItemNumber]
+                                  ,[Category]
+                                  ,[Price]
+                                  ,[Shipping]
+                                  ,[Limit]
+                                  ,[Discount]
+                                  ,[Details]
+                                  ,[Specification]
+                                  ,[Url]
+                                  ,[Options]
+                                  ,[ImageLink]
+                                  ,[ImageOptions]
+                                  ,[NumberOfImage] 
+                                  ,GETDATE()
+                            from Staging_ProductInfo sp
                             WHERE 
                             NOT EXISTS
-                            (SELECT 1 FROM ProductInfo p  WHERE sp.UrlNumber = p.UrlNumber)";
+                            (SELECT 1 FROM ProductInfo p  WHERE sp.UrlNumber = p.UrlNumber)
+                            AND
+                            NOT EXISTS 
+                            (SELECT 1 FROM CostcoInventoryChange_New n WHERE n.CostcoUrl = sp.UrlNumber)";
 
             cmd.CommandText = sqlString;
             cmd.ExecuteNonQuery();
