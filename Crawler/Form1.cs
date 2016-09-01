@@ -78,13 +78,13 @@ namespace Crawler
         {
             SetConnectionString();
 
-            runCrawl();
+            //runCrawl();
 
-            //int nEBayListingChangePriceUp = 0;
-            //int nEBayListingChangePriceDown = 0;
-            //int nEBayListingChangeDiscontinue = 0;
-            //int nEBayListingChangeOptions = 0;
-            //CheckEBayListing(out nEBayListingChangePriceUp, out nEBayListingChangePriceDown, out nEBayListingChangeDiscontinue, out nEBayListingChangeOptions);
+            int nEBayListingChangePriceUp = 0;
+            int nEBayListingChangePriceDown = 0;
+            int nEBayListingChangeDiscontinue = 0;
+            int nEBayListingChangeOptions = 0;
+            CheckEBayListing(out nEBayListingChangePriceUp, out nEBayListingChangePriceDown, out nEBayListingChangeDiscontinue, out nEBayListingChangeOptions);
 
             this.Close();
         }
@@ -672,7 +672,7 @@ namespace Crawler
                     }
                     for (int k = j; k <= 8; k++)
                     {
-                        sqlString += "Category" + k.ToString() + "=NULL";
+                        sqlString += "Category" + k.ToString() + " is NULL";
                         if (k < 8)
                         {
                             sqlString += " AND ";
@@ -694,7 +694,7 @@ namespace Crawler
                     }
                     for (int k = j; k <= 8; k++)
                     {
-                        sqlString += "Category" + k.ToString() + "=NULL";
+                        sqlString += "Category" + k.ToString() + " is NULL";
                         if (k < 8)
                         {
                             sqlString += " AND ";
