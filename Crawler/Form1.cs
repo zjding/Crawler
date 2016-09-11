@@ -16,6 +16,8 @@ using System.Web;
 using System.Windows.Forms;
 using System.Net.Mail;
 using System.Net;
+using OpenQA.Selenium.Chrome;
+using System.Text.RegularExpressions;
 
 namespace Crawler
 {
@@ -155,21 +157,21 @@ namespace Crawler
         {
             startDT = DateTime.Now;
 
-            // test
-            productUrlArray.Clear();
-            productUrlArray.Add("http://www.costco.com/Steve-Madden-Leather-Passcase-Wallet.product.100242459.html");
-            //productUrlArray.Add(@"file:///C:/Users/Jason%20Ding/Desktop/Jura%20Impressa%20F7%20Automatic%20Coffee%20Center.html");
-            GetProductInfo(false);
-            //end test
+            //// test
+            //productUrlArray.Clear();
+            //productUrlArray.Add("http://www.costco.com/Evenflo-Platinum-Symphony-DLX---Castle-Rock.product.100301374.html");
+            ////productUrlArray.Add(@"file:///C:/Users/Jason%20Ding/Desktop/Jura%20Impressa%20F7%20Automatic%20Coffee%20Center.html");
+            //GetProductInfo(false);
+            ////end test
 
             if (string.IsNullOrEmpty(connectionString))
                 SetConnectionString();
 
-            //GetDepartmentArray();
+            GetDepartmentArray();
 
-            //GetProductUrls_New();
+            GetProductUrls_New();
 
-            //GetProductInfo();
+            GetProductInfo();
 
             SecondTry(1);
 
@@ -220,7 +222,9 @@ namespace Crawler
             productListPages.Clear();
             productUrlArray.Clear();
 
-            driver = new FirefoxDriver(new FirefoxBinary(), new FirefoxProfile(), TimeSpan.FromSeconds(180));
+            //driver = new FirefoxDriver(new FirefoxBinary(), new FirefoxProfile(), TimeSpan.FromSeconds(180));
+
+            driver = new ChromeDriver();
 
             List<string> subCategory = new List<string>();
 
@@ -277,6 +281,7 @@ namespace Crawler
             nScanProducts = productUrlArray.Count;
 
             driver.Close();
+            driver.Dispose();
 
             productListEndDT = DateTime.Now;
 
@@ -361,12 +366,16 @@ namespace Crawler
 
             }
 
-            driver = new FirefoxDriver(new FirefoxBinary(), new FirefoxProfile(), TimeSpan.FromSeconds(180));
-            driver.Navigate().GoToUrl("https://www.costco.com/LogonForm");
-            IWebElement logonForm = driver.FindElement(By.Id("LogonForm"));
-            logonForm.FindElement(By.Id("logonId")).SendKeys("zjding@gmail.com");
-            logonForm.FindElement(By.Id("logonPassword")).SendKeys("721123");
-            logonForm.FindElement(By.ClassName("submit")).Click();
+            //driver = new FirefoxDriver(new FirefoxBinary(), new FirefoxProfile(), TimeSpan.FromSeconds(180));
+            if (productUrlArray.Count > 0)
+            {
+                driver = new ChromeDriver();
+                driver.Navigate().GoToUrl("https://www.costco.com/LogonForm");
+                IWebElement logonForm = driver.FindElement(By.Id("LogonForm"));
+                logonForm.FindElement(By.Id("logonId")).SendKeys("zjding@gmail.com");
+                logonForm.FindElement(By.Id("logonPassword")).SendKeys("721123");
+                logonForm.FindElement(By.ClassName("submit")).Click();
+            }
 
             //productUrlArray.Clear();
             //productUrlArray.Add("http://www.costco.com/Orgain%c2%ae-Healthy-Kids-Organic-Shake-18ct--8.25oz-Chocolate.product.100083891.html");
@@ -386,8 +395,8 @@ namespace Crawler
                     string productUrl = HttpUtility.HtmlDecode(pu);
                     productUrl = productUrl.Replace("%2c", ",");
 
-                    //string UrlNum = productUrl.Substring(0, productUrl.LastIndexOf('.'));
-                    //UrlNum = UrlNum.Substring(UrlNum.LastIndexOf('.') + 1);
+                    string UrlNum = productUrl.Substring(0, productUrl.LastIndexOf('.'));
+                    UrlNum = UrlNum.Substring(UrlNum.LastIndexOf('.') + 1);
 
                     //PageResult = Browser.NavigateToPage(new Uri(productUrl));
 
@@ -434,20 +443,38 @@ namespace Crawler
                     IWebElement eTitleAndItemNumber = eProductDetails.FindElement(By.ClassName("visible-xl"));
 
                     // name
+                    string productName = string.Empty;
                     IWebElement eTitle = eTitleAndItemNumber.FindElement(By.TagName("h1"));
-                    string productName = eTitle.Text;
+                    productName = eTitle.Text;
                     productName = productName.Replace("???", "");
                     productName = productName.Replace("??", "");
                     productName = productName.Trim();
 
                     // item number
-                    IWebElement eItemNumber = eTitleAndItemNumber.FindElement(By.ClassName("item-number")).FindElement(By.TagName("span"));
-                    string itemNumber = eItemNumber.Text;
+                    string itemNumber = string.Empty;
+                    if (hasElement(eTitleAndItemNumber, By.ClassName("item-number")))
+                    {
+                        IWebElement eItemNumber = eTitleAndItemNumber.FindElement(By.ClassName("item-number")).FindElement(By.TagName("span"));
+                        itemNumber = eItemNumber.Text;
+                    }
+
+                    // image 
+                    string imageLink = string.Empty;
+                    string thumb = string.Empty;
+                    var eSlickTrack = driver.FindElement(By.Id("thumbnails")).FindElement(By.Id("theViews")).FindElement(By.ClassName("slick-track"));
+                    var eThumbs = eSlickTrack.FindElements(By.TagName("a"));
+                    foreach (var eThumb in eThumbs)
+                    {
+                        imageLink += eThumb.FindElement(By.TagName("img")).GetAttribute("src").Replace("=648", "=649") + "|";
+
+                        if (thumb == string.Empty)
+                            thumb = eThumb.FindElement(By.TagName("img")).GetAttribute("src");
+                    }
+                    imageLink = imageLink.Substring(0, imageLink.Length - 1);
 
                     // variants
                     string optionsString = string.Empty;
                     string imageOptions = string.Empty;
-                    string imageLink = string.Empty;
 
                     if (hasElement(eProductDetails, By.Id("variants")))
                     {
@@ -464,7 +491,7 @@ namespace Crawler
 
                         if (selectList.Count == 2)
                         {
-                            IWebElement selectElement0 = driver.FindElement(By.Id(selectList[0]));
+                            IWebElement selectElement0 = eProductDetails.FindElement(By.Id(selectList[0]));
                             var options0 = selectElement0.FindElements(By.TagName("option"));
 
                             foreach (IWebElement option0 in options0)
@@ -477,7 +504,7 @@ namespace Crawler
 
                                     option0.Click();
 
-                                    IWebElement selectElement1 = driver.FindElement(By.Id(selectList[1]));
+                                    IWebElement selectElement1 = eProductDetails.FindElement(By.Id(selectList[1]));
                                     var options1 = selectElement1.FindElements(By.TagName("option"));
 
                                     optionsString += option0String + /*swatch0 +*/ ":";
@@ -500,16 +527,28 @@ namespace Crawler
                                     optionsString = optionsString.Substring(0, optionsString.Length - 1);
                                     optionsString += "|";
 
+                                    options0[1].Click();
+                                    options1[1].Click();
+
+                                    // zoomViewer
+                                    IWebElement eZoomViewer = driver.FindElement(By.Id("zoomViewer"));
+
                                     // imagesString
-                                    IWebElement thumb_holder = driver.FindElement(By.Id("thumbnails"));
+                                    IWebElement thumb_holder = eZoomViewer.FindElement(By.Id("thumbnails"));
                                     var thumblis = thumb_holder.FindElement(By.ClassName("slick-track")).FindElements(By.TagName("a"));
 
                                     imageOptions += option0String + /*swatch0 +*/ "=";
 
+                                    //IWebElement eProductImageContainer = eZoomViewer.FindElement(By.Id("productImageContainer"));
+                                    //IWebElement eProductImage = eProductImageContainer.FindElement(By.Id("productImage"));
+                                    //string productImageUrl = eProductImage.GetAttribute("src");
+                                    //string recipeName = productImageUrl.Substring(productImageUrl.LastIndexOf("="), productImageUrl.Length - productImageUrl.LastIndexOf("="));
+
                                     foreach (IWebElement li in thumblis)
                                     {
                                         string imgUrl = li.FindElement(By.TagName("img")).GetAttribute("src");
-                                        imgUrl = imgUrl.Replace(@"648", @"649");
+                                        //string imgRecipeName = imgUrl.Substring(imgUrl.LastIndexOf("="), imgUrl.Length - imgUrl.LastIndexOf("="));
+                                        imgUrl = imgUrl.Replace(@"=648", @"=649");
                                         imageOptions += imgUrl + "|";
                                     }
 
@@ -523,7 +562,7 @@ namespace Crawler
                         }
                         else if (selectList.Count == 1)
                         {
-                            IWebElement selectElement0 = driver.FindElement(By.Id(selectList[0]));
+                            IWebElement selectElement0 = eProductDetails.FindElement(By.Id(selectList[0]));
                             var options0 = selectElement0.FindElements(By.TagName("option"));
                             foreach (IWebElement option0 in options0)
                             {
@@ -542,14 +581,25 @@ namespace Crawler
                             }
                             optionsString = optionsString.Substring(0, optionsString.Length - 1);
 
+                            options0[1].Click();
+
+                            // zoomViewer
+                            IWebElement eZoomViewer = driver.FindElement(By.Id("zoomViewer"));
+
                             // imagesString
-                            IWebElement thumb_holder = driver.FindElement(By.Id("thumbnails"));
+                            IWebElement thumb_holder = eZoomViewer.FindElement(By.Id("thumbnails"));
                             var thumblis = thumb_holder.FindElement(By.ClassName("slick-track")).FindElements(By.TagName("a"));
+
+                            //IWebElement eProductImageContainer = eZoomViewer.FindElement(By.Id("productImageContainer"));
+                            //IWebElement eProductImage = eProductImageContainer.FindElement(By.Id("productImage"));
+                            //string productImageUrl = eProductImage.GetAttribute("src");
+                            //string recipeName = productImageUrl.Substring(productImageUrl.LastIndexOf("=") + 1, productImageUrl.Length - productImageUrl.LastIndexOf("=") - 1);
 
                             foreach (IWebElement li in thumblis)
                             {
                                 string imgUrl = li.FindElement(By.TagName("img")).GetAttribute("src");
-                                imgUrl = imgUrl.Replace(@"648", @"649");
+                                //string imgRecipeName = imgUrl.Substring(imgUrl.LastIndexOf("=") + 1, imgUrl.Length - imgUrl.LastIndexOf("=") - 1);
+                                imgUrl = imgUrl.Replace(@"=648", @"=649");
                                 imageOptions += imgUrl + ";";
                             }
 
@@ -563,250 +613,47 @@ namespace Crawler
                     string price = eYourPrice.Text.Replace(",", "");
 
                     // marketing
-                    IWebElement eMarketing = eProductDetails.FindElement(By.ClassName("marketing-container"));
-                    string merchandisingText = hasElement(eMarketing, By.ClassName("merchandisingText")) ?
-                                                eMarketing.FindElement(By.ClassName("merchandisingText")).Text : "";
-                    string promotionalText = hasElement(eMarketing, By.ClassName("PromotionalText")) ?
-                                                eMarketing.FindElement(By.ClassName("PromotionalText")).Text : "";
+                    string discount = string.Empty;
 
-                    string discount = merchandisingText + " | " + promotionalText;
+                    if (hasElement(eProductDetails, By.ClassName("marketing-container")))
+                    {
+                        IWebElement eMarketing = eProductDetails.FindElement(By.ClassName("marketing-container"));
+                        string merchandisingText = hasElement(eMarketing, By.ClassName("merchandisingText")) ?
+                                                    eMarketing.FindElement(By.ClassName("merchandisingText")).Text : "";
+                        string promotionalText = hasElement(eMarketing, By.ClassName("PromotionalText")) ?
+                                                    eMarketing.FindElement(By.ClassName("PromotionalText")).Text : "";
+
+                        discount = merchandisingText + " | " + promotionalText;
+                        discount.Replace("Free Shipping", "");
+                    }
 
                     // feature
-                    IWebElement eFeatures = eProductDetails.FindElement(By.ClassName("features-container"));
-
-                    IWebElement eShipping = eFeatures.FindElement(By.Id("shipping-statement"));
-
                     string shipping = "0";
+                    if (hasElement(eProductDetails, By.ClassName("features-container")))
+                    {
+                        IWebElement eFeatures = eProductDetails.FindElement(By.ClassName("features-container"));
 
-                    if (eShipping.Text.Contains("Included") || eShipping.Text.Contains("Free"))
-                        shipping = "0";
+                        if (hasElement(eFeatures, By.Id("shipping-statement")))
+                        {
+                            IWebElement eShipping = eFeatures.FindElement(By.Id("shipping-statement"));
 
-                    int a = 1;
-                    //HtmlNode productInfo = html.SelectSingleNode("//div[@id='product-details']");
+                            if (eShipping.Text.Contains("Included") || eShipping.Text.Contains("Free"))
+                                shipping = "0";
+                            else
+                            {
+                                shipping = eShipping.Text.Replace("Shipping & Handling", "");
+                                shipping = shipping.Replace(":", "");
+                                shipping = shipping.Replace("$", "");
+                                shipping = shipping.Replace("*", "");
+                                shipping = shipping.Trim();
+                            }
+                        }
+                    }
 
-                    //string productName = ((productInfo).SelectNodes("h1"))[0].InnerText;
-                    //productName = productName.Replace("???", "");
-                    //productName = productName.Replace("??", "");
-                    //productName = productName.Trim();
-
-                    //List<HtmlNode> topReviewPanelNode = productInfo.CssSelect(".top_review_panel").ToList<HtmlNode>();
-
-                    //string discount = "";
-
-                    //HtmlNode discountNote = topReviewPanelNode[0].SelectSingleNode("//p[@class='merchandisingText']");
-
-                    //if (discountNote != null)
-                    //{
-                    //    discount = discountNote.InnerText.Replace("?", "");
-                    //    discount = discountNote.InnerText.Replace("'", "");
-                    //}
-
-
-
-                    //List<HtmlNode> col1Node = productInfo.CssSelect(".col1").ToList<HtmlNode>();
-                    //string itemNumber = (col1Node[0].SelectNodes("p")[0]).InnerText;
-                    //if (itemNumber.ToUpper().Contains("ITEM") && itemNumber.Length > 6)
-                    //    itemNumber = itemNumber.Substring(6);
-                    //else
-                    //    itemNumber = "";
-
-                    //discountNote = col1Node[0].CssSelect(".merchandisingText").FirstOrDefault();
-
-                    //if (discountNote != null)
-                    //{
-                    //    discount = discount.Length == 0 ? discountNote.InnerText.Replace("?", "") : discount + "; " + discountNote.InnerText.Replace("?", "");
-                    //    discount = discount.Replace("?", "");
-                    //    discount = discount.Replace("'", "");
-                    //}
-
-                    //discount = discount.Replace("Free Shipping", "");
-
-                    //string price;
-                    //List<HtmlNode> yourPriceNode = col1Node.CssSelect(".your-price").ToList<HtmlNode>();
-                    //if (yourPriceNode.Count > 0)
-                    //{
-                    //    List<HtmlNode> priceNode = yourPriceNode[0].CssSelect(".currency").ToList<HtmlNode>();
-                    //    price = priceNode[0].InnerText;
-                    //    price = price.Replace("$", "");
-                    //    price = price.Replace(",", "");
-
-                    //    if (price == "- -")
-                    //        price = "-2";
-                    //}
-                    //else
-                    //{
-                    //    price = "-1";
-                    //}
-
-                    //var productOptionsNode = col1Node.CssSelect(".product-option").FirstOrDefault();
-
-                    //string shipping = "0";
-
-                    //var productSHNode = col1Node[0].SelectSingleNode("//li[@class='product']");
-
-                    //string optionsString = string.Empty;
-                    //string imageOptions = string.Empty;
-                    //string imageLink = string.Empty;
-
-                    //if (productSHNode != null)
-                    //{
-                    //    if (productSHNode.InnerText.ToUpper().Contains("INCLUDED") || productSHNode.InnerText.ToUpper().Contains("INLCUDED"))
-                    //    {
-                    //        shipping = "0";
-                    //    }
-                    //    else
-                    //    {
-                    //        string shString = productSHNode.InnerText;
-                    //        int nDollar = shString.IndexOf("$");
-                    //        if (nDollar > 0)
-                    //        {
-                    //            shString = shString.Substring(nDollar + 1);
-                    //            int nStar = shString.IndexOf("*");
-                    //            if (nStar == -1)
-                    //                nStar = shString.IndexOf(" ");
-                    //            shString = shString.Substring(0, nStar);
-                    //            shString = shString.Replace(" ", "");
-                    //            shipping = shString;
-                    //        }
-                    //        else
-                    //        {
-                    //            int nShipping = shString.IndexOf("Shipping");
-                    //            int nQuantity = shString.ToUpper().IndexOf("QUANTITY");
-
-                    //            if (nShipping == -1 || nQuantity == -1)
-                    //            {
-                    //                sqlString = "INSERT INTO Import_Skips (Url, SkipPoint) VALUES ('" + pu.Replace(@"'", @"''") + "','" + "Shipping and Quantity" + "')";
-                    //                cmd.CommandText = sqlString;
-                    //                cmd.ExecuteNonQuery();
-                    //                nSkipProducts++;
-                    //                continue;
-                    //            }
-
-                    //            shString = shString.Substring(nShipping, nQuantity);
-                    //            Char[] strarr = shString.ToCharArray().Where(c => Char.IsDigit(c) || c.Equals('.')).ToArray();
-                    //            decimal number = Convert.ToDecimal(new string(strarr));
-                    //            shipping = number.ToString();
-                    //        }
-                    //    }
-                    //}
-
-                    //if (string.IsNullOrEmpty(string.Empty))
-                    //{
-                    //    HtmlNode imageColumnNode = html.CssSelect(".image-column").ToList<HtmlNode>().First();
-
-                    //    HtmlNode imageNode = imageColumnNode.SelectSingleNode("//img[@itemprop='image']");
-
-                    //    imageLink = (imageNode.Attributes["src"]).Value;
-                    //}
-
-                    //#region
-                    //if (productSHNode.InnerText.ToUpper().Contains("OPTIONS"))
-                    //{
-
-                    //    driver.Navigate().GoToUrl(productUrl);
-                    //    var productOptions = driver.FindElements(By.ClassName("product-option"));
-
-                    //    List<string> selectList = new List<string>();
-
-                    //    foreach (var productOption in productOptions)
-                    //    {
-                    //        selectList.Add(productOption.FindElement(By.TagName("select")).GetAttribute("id").ToString());
-                    //    }
-
-                    //    if (selectList.Count == 2)
-                    //    {
-                    //        IWebElement selectElement0 = driver.FindElement(By.Id(selectList[0]));
-                    //        var options0 = selectElement0.FindElements(By.TagName("option"));
-                    //        foreach (IWebElement option0 in options0)
-                    //        {
-                    //            if (option0.GetAttribute("value").ToString().ToUpper() != "UNSELECTED")
-                    //            {
-                    //                // optionsString
-                    //                string option0String = option0.Text;
-                    //                //string swatch0 = option0.GetAttribute("swatch") == string.Empty ? string.Empty : "(" + option0.GetAttribute("swatch") + ")";
-
-                    //                option0.Click();
-
-                    //                IWebElement selectElement1 = driver.FindElement(By.Id(selectList[1]));
-                    //                var options1 = selectElement1.FindElements(By.TagName("option"));
-
-                    //                optionsString += option0String + /*swatch0 +*/ ":";
-
-                    //                foreach (IWebElement option1 in options1)
-                    //                {
-                    //                    if (option1.GetAttribute("value").ToString().ToUpper() != "UNSELECTED")
-                    //                    {
-                    //                        if (option1.Text.Contains("$"))
-                    //                        {
-                    //                            optionsString += option1.Text.Substring(0, option1.Text.LastIndexOf("- $") - 1) + ";";
-                    //                        }
-                    //                        else
-                    //                        {
-                    //                            optionsString += option1.Text + ";";
-                    //                        }
-                    //                    }
-                    //                }
-
-                    //                optionsString = optionsString.Substring(0, optionsString.Length - 1);
-                    //                optionsString += "|";
-
-                    //                // imagesString
-                    //                IWebElement thumb_holder = driver.FindElement(By.Id("thumb_holder"));
-                    //                var thumblis = thumb_holder.FindElements(By.TagName("li"));
-
-                    //                imageOptions += option0String + /*swatch0 +*/ "=";
-
-                    //                foreach (IWebElement li in thumblis)
-                    //                {
-                    //                    string imgUrl = li.FindElement(By.TagName("img")).GetAttribute("src");
-                    //                    imgUrl = imgUrl.Replace(@"/50-", @"/500-");
-                    //                    imageOptions += imgUrl + "|";
-                    //                }
-
-                    //                imageOptions = imageOptions.Substring(0, imageOptions.Length - 1);
-                    //                imageOptions += "~";
-                    //            }
-                    //        }
-
-                    //        optionsString = optionsString.Substring(0, optionsString.Length - 1);
-                    //        imageOptions = imageOptions.Substring(0, imageOptions.Length - 1);
-
-                    //    }
-                    //    else if (selectList.Count == 1)
-                    //    {
-                    //        IWebElement selectElement0 = driver.FindElement(By.Id(selectList[0]));
-                    //        var options0 = selectElement0.FindElements(By.TagName("option"));
-                    //        foreach (IWebElement option0 in options0)
-                    //        {
-                    //            if (option0.GetAttribute("value").ToString().ToUpper() != "UNSELECTED")
-                    //            {
-                    //                if (option0.Text.Contains("$"))
-                    //                {
-                    //                    optionsString += option0.Text.Substring(0, option0.Text.LastIndexOf("- $") - 1) + ";";
-                    //                }
-                    //                else
-                    //                {
-                    //                    optionsString += option0.Text + ";";
-                    //                }
-                    //            }
-                    //        }
-                    //        optionsString = optionsString.Substring(0, optionsString.Length - 1);
-
-                    //        // imagesString
-                    //        IWebElement thumb_holder = driver.FindElement(By.Id("thumb_holder"));
-                    //        var thumblis = thumb_holder.FindElements(By.TagName("li"));
-
-                    //        foreach (IWebElement li in thumblis)
-                    //        {
-                    //            string imgUrl = li.FindElement(By.TagName("img")).GetAttribute("src");
-                    //            imgUrl = imgUrl.Replace(@"/50-", @"/500-");
-                    //            imageOptions += imgUrl + ";";
-                    //        }
-
-                    //        imageOptions = imageOptions.Substring(0, imageOptions.Length - 1);
-                    //    }
-                    //}
-                    //#endregion
+                    // view more
+                    IWebElement eViewMore = driver.FindElement(By.ClassName("view-more"));
+                    IWebElement eViewMoreLink = eViewMore.FindElement(By.TagName("a"));
+                    eViewMoreLink.Click();
 
                     //if (firstTry.Contains(pu))
                     //    firstTryResult.Add(pu);
@@ -814,54 +661,56 @@ namespace Crawler
                     //if (secondTry.Contains(pu))
                     //    secondTryResult.Add(pu);
 
-                    //sqlString = "INSERT INTO Raw_ProductInfo (Name, UrlNumber, ItemNumber, Category, Price, Shipping, Discount, ImageLink, ImageOptions, Url, Options) VALUES ('" + productName.Replace("'", "''") + "','" + UrlNum + "','" + itemNumber + "','" + stSubCategories + "'," + price + "," + shipping + "," + "'" + discount + "','" + imageLink.Replace("'", "''") + "','" + imageOptions.Replace("'", "''") + "','" + productUrl.Replace("'", "''") + "','" + optionsString + "')";
-                    //cmd.CommandText = sqlString;
-                    //cmd.ExecuteNonQuery();
-                    //nImportProducts++;
+                    sqlString = "INSERT INTO Raw_ProductInfo (Name, UrlNumber, ItemNumber, Category, Price, Shipping, Discount, ImageLink, ImageOptions, Url, Options, Thumb) VALUES ('" + 
+                        productName.Replace("'", "''") + "','" + UrlNum + "','" + itemNumber + "','" + stSubCategories + "'," + price + "," + shipping + "," + "'" + discount + 
+                        "','" + imageLink.Replace("'", "''") + "','" + imageOptions.Replace("'", "''") + "','" + productUrl.Replace("'", "''") + "','" + optionsString + "','" + thumb + "')";
+                    cmd.CommandText = sqlString;
+                    cmd.ExecuteNonQuery();
+                    nImportProducts++;
 
-                    //sqlString = @"IF NOT EXISTS (SELECT * FROM Costco_Categories WHERE ";
-                    //int j = 1;
-                    //foreach (var c in stSubCategories.Split('|'))
-                    //{
-                    //    sqlString += "Category" + j.ToString() + "='" + c + "'";
-                    //    sqlString += " AND ";
+                    sqlString = @"IF NOT EXISTS (SELECT * FROM Costco_Categories WHERE ";
+                    int j = 1;
+                    foreach (var c in stSubCategories.Split('|'))
+                    {
+                        sqlString += "Category" + j.ToString() + "='" + c + "'";
+                        sqlString += " AND ";
 
-                    //    j++;
-                    //}
-                    //for (int k = j; k <= 8; k++)
-                    //{
-                    //    sqlString += "Category" + k.ToString() + " is NULL";
-                    //    if (k < 8)
-                    //    {
-                    //        sqlString += " AND ";
-                    //    }
-                    //}
-                    //sqlString += @") BEGIN
-                    //                INSERT INTO Costco_Categories (" + columns + ") VALUES (" + values + ") END";
-                    //cmd.CommandText = sqlString;
-                    //cmd.ExecuteNonQuery();
+                        j++;
+                    }
+                    for (int k = j; k <= 8; k++)
+                    {
+                        sqlString += "Category" + k.ToString() + " is NULL";
+                        if (k < 8)
+                        {
+                            sqlString += " AND ";
+                        }
+                    }
+                    sqlString += @") BEGIN
+                                    INSERT INTO Costco_Categories (" + columns + ") VALUES (" + values + ") END";
+                    cmd.CommandText = sqlString;
+                    cmd.ExecuteNonQuery();
 
-                    //sqlString = @"IF NOT EXISTS (SELECT * FROM Costco_eBay_Categories WHERE ";
-                    //j = 1;
-                    //foreach (var c in stSubCategories.Split('|'))
-                    //{
-                    //    sqlString += "Category" + j.ToString() + "='" + c + "'";
-                    //    sqlString += " AND ";
+                    sqlString = @"IF NOT EXISTS (SELECT * FROM Costco_eBay_Categories WHERE ";
+                    j = 1;
+                    foreach (var c in stSubCategories.Split('|'))
+                    {
+                        sqlString += "Category" + j.ToString() + "='" + c + "'";
+                        sqlString += " AND ";
 
-                    //    j++;
-                    //}
-                    //for (int k = j; k <= 8; k++)
-                    //{
-                    //    sqlString += "Category" + k.ToString() + " is NULL";
-                    //    if (k < 8)
-                    //    {
-                    //        sqlString += " AND ";
-                    //    }
-                    //}
-                    //sqlString += @") BEGIN
-                    //                INSERT INTO Costco_eBay_Categories (" + columns + ") VALUES (" + values + ") END";
-                    //cmd.CommandText = sqlString;
-                    //cmd.ExecuteNonQuery();
+                        j++;
+                    }
+                    for (int k = j; k <= 8; k++)
+                    {
+                        sqlString += "Category" + k.ToString() + " is NULL";
+                        if (k < 8)
+                        {
+                            sqlString += " AND ";
+                        }
+                    }
+                    sqlString += @") BEGIN
+                                    INSERT INTO Costco_eBay_Categories (" + columns + ") VALUES (" + values + ") END";
+                    cmd.CommandText = sqlString;
+                    cmd.ExecuteNonQuery();
                 }
                 catch (Exception exception)
                 {
@@ -879,7 +728,11 @@ namespace Crawler
 
             cn.Close();
 
-            driver.Close();
+            if (productUrlArray.Count > 0)
+            {
+                driver.Close();
+                driver.Dispose();
+            }
         }
 
         //private void GetProductInfo(bool bTruncate = true, bool bTruncateCostcoCategoriesTable = true)
@@ -1357,8 +1210,8 @@ namespace Crawler
             cmd.CommandText = sqlString;
             cmd.ExecuteNonQuery();
 
-            sqlString = @"insert into dbo.staging_productInfo (Name, urlNumber, itemnumber, Category, price, shipping, discount, details, specification, imageLink, imageOptions, url, options)
-                        select distinct Name, urlNumber, itemnumber, Category, price, shipping, discount, details, specification, imageLink, imageOptions, url, options
+            sqlString = @"insert into dbo.staging_productInfo (Name, urlNumber, itemnumber, Category, price, shipping, discount, details, specification, imageLink, imageOptions, url, options, Thumb)
+                        select distinct Name, urlNumber, itemnumber, Category, price, shipping, discount, details, specification, imageLink, imageOptions, url, options, Thumb
                         from dbo.Raw_ProductInfo
                         where Price > 0
                         order by UrlNumber";
