@@ -159,7 +159,7 @@ namespace Crawler
 
             //// test
             //productUrlArray.Clear();
-            //productUrlArray.Add("http://www.costco.com/Evenflo-Platinum-Symphony-DLX---Castle-Rock.product.100301374.html");
+            //productUrlArray.Add("http://www.costco.com/Brentwood-Home-Dandelion-2-Stage-Crib-Mattress.product.100290548.html");
             ////productUrlArray.Add(@"file:///C:/Users/Jason%20Ding/Desktop/Jura%20Impressa%20F7%20Automatic%20Coffee%20Center.html");
             //GetProductInfo(false);
             ////end test
@@ -328,6 +328,24 @@ namespace Crawler
             }
         }
 
+        private string UTF8ToString (string utf8)
+        {
+            string result;
+
+            result = utf8;
+
+            result = result.Replace("%E2%80%99", "'");
+            result = result.Replace("%e2%80%99", "'");
+
+            result = result.Replace("%2C", ",");
+            result = result.Replace("%2c", "");
+
+            result = result.Replace("%C2%AE", "®");
+            result = result.Replace("%c2%ae", "®");
+
+            return result;
+        }
+
         private void GetProductInfo(bool bTruncate = true, bool bTruncateCostcoCategoriesTable = true)
         {
             SqlConnection cn = new SqlConnection(connectionString);
@@ -392,26 +410,37 @@ namespace Crawler
                     i++;
                     nScanProducts++;
 
-                    string productUrl = HttpUtility.HtmlDecode(pu);
-                    productUrl = productUrl.Replace("%2c", ",");
-
-                    string UrlNum = productUrl.Substring(0, productUrl.LastIndexOf('.'));
-                    UrlNum = UrlNum.Substring(UrlNum.LastIndexOf('.') + 1);
-
-                    //PageResult = Browser.NavigateToPage(new Uri(productUrl));
-
-                    //HtmlNode html = PageResult.Html;
-
-                    //if (html.InnerText.Contains("Product Not Found"))
-                    //{
-                    //    sqlString = "INSERT INTO Import_Skips (Url, SkipPoint) VALUES ('" + pu.Replace(@"'", @"''") + "','" + "Product not found" + "')";
-                    //    cmd.CommandText = sqlString;
-                    //    cmd.ExecuteNonQuery();
-                    //    nSkipProducts++;
-                    //    continue;
-                    //}
+                    string productUrl = UTF8ToString(pu);
 
                     driver.Navigate().GoToUrl(productUrl);
+
+                    if (driver.Title == "Generic Error")
+                    {
+                        productUrl = pu;
+                        driver.Navigate().GoToUrl(productUrl);
+                    }
+
+                    if (driver.Title == "Generic Error")
+                    {
+                        sqlString = "INSERT INTO Import_Skips (Url, SkipPoint) VALUES ('" + pu.Replace(@"'", @"''") + "','" + "Product not found" + "')";
+                        cmd.CommandText = sqlString;
+                        cmd.ExecuteNonQuery();
+                        nSkipProducts++;
+                        continue;
+                    }
+
+                    if (driver.PageSource.Contains("Product Not Found") || driver.PageSource.Contains("Out of Stock"))
+                    {
+                        sqlString = "INSERT INTO Import_Skips (Url, SkipPoint) VALUES ('" + pu.Replace(@"'", @"''") + "','" + "Product not found" + "')";
+                        cmd.CommandText = sqlString;
+                        cmd.ExecuteNonQuery();
+                        nSkipProducts++;
+                        continue;
+                    }
+
+                    // Url number             
+                    string UrlNum = productUrl.Substring(0, productUrl.LastIndexOf('.'));
+                    UrlNum = UrlNum.Substring(UrlNum.LastIndexOf('.') + 1);
 
                     // category
                     IWebElement eCrumbs = driver.FindElement(By.ClassName("crumbs"));
@@ -461,16 +490,35 @@ namespace Crawler
                     // image 
                     string imageLink = string.Empty;
                     string thumb = string.Empty;
-                    var eSlickTrack = driver.FindElement(By.Id("thumbnails")).FindElement(By.Id("theViews")).FindElement(By.ClassName("slick-track"));
-                    var eThumbs = eSlickTrack.FindElements(By.TagName("a"));
-                    foreach (var eThumb in eThumbs)
+                    if (hasElement(driver, By.Id("thumbnails")))
                     {
-                        imageLink += eThumb.FindElement(By.TagName("img")).GetAttribute("src").Replace("=648", "=649") + "|";
+                        var eTheViews = driver.FindElement(By.Id("thumbnails")).FindElement(By.Id("theViews"));
 
-                        if (thumb == string.Empty)
-                            thumb = eThumb.FindElement(By.TagName("img")).GetAttribute("src");
+                        if (hasElement(eTheViews, By.ClassName("slick-track")))
+                        { 
+                            var eSlickTrack = eTheViews.FindElement(By.ClassName("slick-track"));
+
+                            var eThumbs = eSlickTrack.FindElements(By.TagName("a"));
+                            foreach (var eThumb in eThumbs)
+                            {
+                                imageLink += eThumb.FindElement(By.TagName("img")).GetAttribute("src").Replace("=648", "=649") + "|";
+
+                                if (thumb == string.Empty)
+                                    thumb = eThumb.FindElement(By.TagName("img")).GetAttribute("src");
+                            }
+                            imageLink = imageLink.Substring(0, imageLink.Length - 1);
+                        }
+                        else
+                        {
+                            thumb = driver.FindElement(By.Id("productImageContainer")).FindElement(By.Id("productImage")).GetAttribute("src");
+                            imageLink = thumb;
+                        }
                     }
-                    imageLink = imageLink.Substring(0, imageLink.Length - 1);
+                    else
+                    {
+                        thumb = driver.FindElement(By.Id("productImageContainer")).FindElement(By.Id("productImage")).GetAttribute("src");
+                        imageLink = thumb;
+                    }
 
                     // variants
                     string optionsString = string.Empty;
@@ -535,24 +583,34 @@ namespace Crawler
 
                                     // imagesString
                                     IWebElement thumb_holder = eZoomViewer.FindElement(By.Id("thumbnails"));
-                                    var thumblis = thumb_holder.FindElement(By.ClassName("slick-track")).FindElements(By.TagName("a"));
 
-                                    imageOptions += option0String + /*swatch0 +*/ "=";
-
-                                    //IWebElement eProductImageContainer = eZoomViewer.FindElement(By.Id("productImageContainer"));
-                                    //IWebElement eProductImage = eProductImageContainer.FindElement(By.Id("productImage"));
-                                    //string productImageUrl = eProductImage.GetAttribute("src");
-                                    //string recipeName = productImageUrl.Substring(productImageUrl.LastIndexOf("="), productImageUrl.Length - productImageUrl.LastIndexOf("="));
-
-                                    foreach (IWebElement li in thumblis)
+                                    if (hasElement(thumb_holder, By.ClassName("slick-track")))
                                     {
-                                        string imgUrl = li.FindElement(By.TagName("img")).GetAttribute("src");
-                                        //string imgRecipeName = imgUrl.Substring(imgUrl.LastIndexOf("="), imgUrl.Length - imgUrl.LastIndexOf("="));
-                                        imgUrl = imgUrl.Replace(@"=648", @"=649");
-                                        imageOptions += imgUrl + "|";
+
+                                        var thumblis = thumb_holder.FindElement(By.ClassName("slick-track")).FindElements(By.TagName("a"));
+
+                                        imageOptions += option0String + /*swatch0 +*/ "=";
+
+                                        //IWebElement eProductImageContainer = eZoomViewer.FindElement(By.Id("productImageContainer"));
+                                        //IWebElement eProductImage = eProductImageContainer.FindElement(By.Id("productImage"));
+                                        //string productImageUrl = eProductImage.GetAttribute("src");
+                                        //string recipeName = productImageUrl.Substring(productImageUrl.LastIndexOf("="), productImageUrl.Length - productImageUrl.LastIndexOf("="));
+
+                                        foreach (IWebElement li in thumblis)
+                                        {
+                                            string imgUrl = li.FindElement(By.TagName("img")).GetAttribute("src");
+                                            //string imgRecipeName = imgUrl.Substring(imgUrl.LastIndexOf("="), imgUrl.Length - imgUrl.LastIndexOf("="));
+                                            imgUrl = imgUrl.Replace(@"=648", @"=649");
+                                            imageOptions += imgUrl + "|";
+                                        }
+
+                                        imageOptions = imageOptions.Substring(0, imageOptions.Length - 1);
+                                    }
+                                    else
+                                    {
+                                        imageOptions = driver.FindElement(By.Id("productImageContainer")).FindElement(By.Id("productImage")).GetAttribute("src");
                                     }
 
-                                    imageOptions = imageOptions.Substring(0, imageOptions.Length - 1);
                                     imageOptions += "~";
                                 }
                             }
@@ -588,22 +646,30 @@ namespace Crawler
 
                             // imagesString
                             IWebElement thumb_holder = eZoomViewer.FindElement(By.Id("thumbnails"));
-                            var thumblis = thumb_holder.FindElement(By.ClassName("slick-track")).FindElements(By.TagName("a"));
 
-                            //IWebElement eProductImageContainer = eZoomViewer.FindElement(By.Id("productImageContainer"));
-                            //IWebElement eProductImage = eProductImageContainer.FindElement(By.Id("productImage"));
-                            //string productImageUrl = eProductImage.GetAttribute("src");
-                            //string recipeName = productImageUrl.Substring(productImageUrl.LastIndexOf("=") + 1, productImageUrl.Length - productImageUrl.LastIndexOf("=") - 1);
-
-                            foreach (IWebElement li in thumblis)
+                            if (hasElement(thumb_holder, By.ClassName("slick-track")))
                             {
-                                string imgUrl = li.FindElement(By.TagName("img")).GetAttribute("src");
-                                //string imgRecipeName = imgUrl.Substring(imgUrl.LastIndexOf("=") + 1, imgUrl.Length - imgUrl.LastIndexOf("=") - 1);
-                                imgUrl = imgUrl.Replace(@"=648", @"=649");
-                                imageOptions += imgUrl + ";";
-                            }
+                                var thumblis = thumb_holder.FindElement(By.ClassName("slick-track")).FindElements(By.TagName("a"));
 
-                            imageOptions = imageOptions.Substring(0, imageOptions.Length - 1);
+                                //IWebElement eProductImageContainer = eZoomViewer.FindElement(By.Id("productImageContainer"));
+                                //IWebElement eProductImage = eProductImageContainer.FindElement(By.Id("productImage"));
+                                //string productImageUrl = eProductImage.GetAttribute("src");
+                                //string recipeName = productImageUrl.Substring(productImageUrl.LastIndexOf("=") + 1, productImageUrl.Length - productImageUrl.LastIndexOf("=") - 1);
+
+                                foreach (IWebElement li in thumblis)
+                                {
+                                    string imgUrl = li.FindElement(By.TagName("img")).GetAttribute("src");
+                                    //string imgRecipeName = imgUrl.Substring(imgUrl.LastIndexOf("=") + 1, imgUrl.Length - imgUrl.LastIndexOf("=") - 1);
+                                    imgUrl = imgUrl.Replace(@"=648", @"=649");
+                                    imageOptions += imgUrl + ";";
+                                }
+
+                                imageOptions = imageOptions.Substring(0, imageOptions.Length - 1);
+                            }
+                            else
+                            {
+                                imageOptions = driver.FindElement(By.Id("productImageContainer")).FindElement(By.Id("productImage")).GetAttribute("src");
+                            }
                         }
                     }
 
@@ -618,13 +684,17 @@ namespace Crawler
                     if (hasElement(eProductDetails, By.ClassName("marketing-container")))
                     {
                         IWebElement eMarketing = eProductDetails.FindElement(By.ClassName("marketing-container"));
+
                         string merchandisingText = hasElement(eMarketing, By.ClassName("merchandisingText")) ?
                                                     eMarketing.FindElement(By.ClassName("merchandisingText")).Text : "";
+                        merchandisingText.Replace("Free Shipping", "").Trim();
+
                         string promotionalText = hasElement(eMarketing, By.ClassName("PromotionalText")) ?
                                                     eMarketing.FindElement(By.ClassName("PromotionalText")).Text : "";
+                        promotionalText.Replace("Free Shipping", "").Trim();
 
-                        discount = merchandisingText + " | " + promotionalText;
-                        discount.Replace("Free Shipping", "");
+                        discount = merchandisingText + " ; " + promotionalText;
+
                     }
 
                     // feature
@@ -637,11 +707,13 @@ namespace Crawler
                         {
                             IWebElement eShipping = eFeatures.FindElement(By.Id("shipping-statement"));
 
-                            if (eShipping.Text.Contains("Included") || eShipping.Text.Contains("Free"))
+                            if (eShipping.Text.ToUpper().Contains("INCLUDED") || eShipping.Text.Contains("FREE"))
                                 shipping = "0";
                             else
                             {
                                 shipping = eShipping.Text.Replace("Shipping & Handling", "");
+                                shipping = shipping.Replace("Shipping and Handling", "");
+                                shipping = shipping.Replace("Shipping & Handing", "");
                                 shipping = shipping.Replace(":", "");
                                 shipping = shipping.Replace("$", "");
                                 shipping = shipping.Replace("*", "");
@@ -1195,6 +1267,11 @@ namespace Crawler
             cmd.CommandText = sqlString;
             cmd.ExecuteNonQuery();
 
+            sqlString = @"delete from Import_Errors";
+
+            cmd.CommandText = sqlString;
+            cmd.ExecuteNonQuery();
+
             cn.Close();
         }
 
@@ -1588,8 +1665,8 @@ namespace Crawler
             cn.Open();
 
             // Archieve
-            string sqlString = @"insert into [dbo].[Archieve] (Name, urlNumber, itemnumber, Category, price, shipping, limit, discount, details, specification, imageLink, imageOptions, url, ImportedDT, NumberOfImage, Options)
-                                select distinct Name, urlNumber, itemnumber, Category, price, shipping, limit, discount, details, specification, imageLink, imageOptions, url, GETDATE(), NumberOfImage, Options
+            string sqlString = @"insert into [dbo].[Archieve] (Name, urlNumber, itemnumber, Category, price, shipping, limit, discount, details, specification, imageLink, imageOptions, url, ImportedDT, NumberOfImage, Options, Thumb)
+                                select distinct Name, urlNumber, itemnumber, Category, price, shipping, limit, discount, details, specification, imageLink, imageOptions, url, GETDATE(), NumberOfImage, Options, Thumb
                                 from  [dbo].[ProductInfo]";
             cmd.CommandText = sqlString;
             cmd.ExecuteNonQuery();
@@ -1598,8 +1675,8 @@ namespace Crawler
             cmd.CommandText = sqlString;
             cmd.ExecuteNonQuery();
 
-            sqlString = @"insert into [dbo].[ProductInfo] (Name, urlNumber, itemnumber, Category, price, shipping, discount, details, specification, imageLink, imageOptions, url, options)
-                        select distinct Name, urlNumber, itemnumber, Category, price, shipping, discount, details, specification, imageLink, imageOptions, url, options
+            sqlString = @"insert into [dbo].[ProductInfo] (Name, urlNumber, itemnumber, Category, price, shipping, discount, details, specification, imageLink, imageOptions, url, options, Thumb)
+                        select distinct Name, urlNumber, itemnumber, Category, price, shipping, discount, details, specification, imageLink, imageOptions, url, options, Thumb
                         from  dbo.staging_productInfo";
             cmd.CommandText = sqlString;
             cmd.ExecuteNonQuery();
