@@ -157,21 +157,21 @@ namespace Crawler
         {
             startDT = DateTime.Now;
 
-            // test
-            productUrlArray.Clear();
-            productUrlArray.Add("http://www.costco.com/Adidas-Men's-Ultimate-Core-Short.product.100286263.html");
-            //productUrlArray.Add(@"file:///C:/Users/Jason%20Ding/Desktop/Jura%20Impressa%20F7%20Automatic%20Coffee%20Center.html");
-            GetProductInfo(false);
-            //end test
+            //// test
+            //productUrlArray.Clear();
+            //productUrlArray.Add("http://www.costco.com/Little-Me-Girls'-Tutu-Popover-2-pack%2c-PinkNavy.product.100279207.html");
+            ////productUrlArray.Add(@"file:///C:/Users/Jason%20Ding/Desktop/Jura%20Impressa%20F7%20Automatic%20Coffee%20Center.html");
+            //GetProductInfo(false);
+            ////end test
 
             if (string.IsNullOrEmpty(connectionString))
                 SetConnectionString();
 
-            //GetDepartmentArray();
+            GetDepartmentArray();
 
-            //GetProductUrls_New();
+            GetProductUrls_New();
 
-            //GetProductInfo();
+            GetProductInfo();
 
             SecondTry(1);
 
@@ -544,7 +544,7 @@ namespace Crawler
 
                             foreach (IWebElement option0 in options0)
                             {
-                                if (option0.GetAttribute("value").ToString().ToUpper() != "UNSELECTED")
+                                if (options0.IndexOf(option0) > 0)
                                 {
                                     // optionsString
                                     string option0String = option0.Text;
@@ -559,7 +559,7 @@ namespace Crawler
 
                                     foreach (IWebElement option1 in options1)
                                     {
-                                        if (option1.GetAttribute("value").ToString().ToUpper() != "UNSELECTED")
+                                        if (options1.IndexOf(option1) > 0)
                                         {
                                             if (option1.Text.Contains("$"))
                                             {
@@ -569,14 +569,16 @@ namespace Crawler
                                             {
                                                 optionsString += option1.Text + ";";
                                             }
+
+                                            option1.Click();
                                         }
                                     }
 
                                     optionsString = optionsString.Substring(0, optionsString.Length - 1);
                                     optionsString += "|";
 
-                                    options0[1].Click();
-                                    options1[1].Click();
+                                    //option0.Click();
+                                    //options1[1].Click();
 
                                     // zoomViewer
                                     IWebElement eZoomViewer = driver.FindElement(By.Id("zoomViewer"));
@@ -624,7 +626,7 @@ namespace Crawler
                             var options0 = selectElement0.FindElements(By.TagName("option"));
                             foreach (IWebElement option0 in options0)
                             {
-                                if (option0.GetAttribute("value").ToString().ToUpper() != "UNSELECTED")
+                                if (options0.IndexOf(option0) > 0)
                                 {
                                     if (option0.Text.Contains("$"))
                                     {
