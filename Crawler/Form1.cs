@@ -159,7 +159,7 @@ namespace Crawler
 
             //// test
             //productUrlArray.Clear();
-            //productUrlArray.Add("http://www.costco.com/Little-Me-Girls'-Tutu-Popover-2-pack%2c-PinkNavy.product.100279207.html");
+            //productUrlArray.Add("http://www.costco.com/32-Degrees-Men's-5-Pocket-Performance-Pant.product.100250109.html");
             ////productUrlArray.Add(@"file:///C:/Users/Jason%20Ding/Desktop/Jura%20Impressa%20F7%20Automatic%20Coffee%20Center.html");
             //GetProductInfo(false);
             ////end test
@@ -689,13 +689,14 @@ namespace Crawler
 
                         string merchandisingText = hasElement(eMarketing, By.ClassName("merchandisingText")) ?
                                                     eMarketing.FindElement(By.ClassName("merchandisingText")).Text : "";
-                        merchandisingText.Replace("Free Shipping", "").Trim();
+                        merchandisingText = merchandisingText.Replace("Free Shipping", "").Trim();
 
                         string promotionalText = hasElement(eMarketing, By.ClassName("PromotionalText")) ?
                                                     eMarketing.FindElement(By.ClassName("PromotionalText")).Text : "";
-                        promotionalText.Replace("Free Shipping", "").Trim();
+                        promotionalText = promotionalText.Replace("Free Shipping", "").Trim();
 
-                        discount = merchandisingText + " ; " + promotionalText;
+                        if (merchandisingText + promotionalText != string.Empty)
+                            discount = merchandisingText + " ; " + promotionalText;
 
                     }
 
@@ -1551,17 +1552,13 @@ namespace Crawler
             cmd.CommandText = sqlString;
             nEBayListingChangePriceUp = Convert.ToInt16(cmd.ExecuteScalar());
 
-            //     sqlString = @"INSERT INTO [dbo].[eBay_ToChange] (Name, CostcoUrlNumber, eBayItemNumber, eBayOldListingPrice, 
-            //eBayNewListingPrice, eBayReferencePrice, 
-            //CostcoOldPrice, CostcoNewPrice, PriceChange)
-            //                     SELECT l.Name, l.CostcoUrlNumber, l.eBayItemNumber, l.eBayListingPrice, l.eBayListingPrice, 
-            //                     l.eBayReferencePrice, l.CostcoPrice, r.Price, 'up'
-            //                     FROM [dbo].[eBay_CurrentListings] l, [dbo].[Staging_ProductInfo] r
-            //                     WHERE l.CostcoPrice < r.Price 
-            //                     AND l.CostcoUrlNumber = r.UrlNumber";
+            sqlString = @"  UPDATE productInfo  
+                            SET price = u.CostcoNewPrice
+                            FROM productInfo p, eBayListingChange_PriceUp u
+                            WHERE p.UrlNumber = u.UrlNumber";
+            cmd.CommandText = sqlString;
+            cmd.ExecuteNonQuery();
 
-            //     cmd.CommandText = sqlString;
-            //     cmd.ExecuteNonQuery();
 
             // eBay listing price down
             sqlString = @"INSERT INTO [dbo].[eBayListingChange_PriceDown] (Name, CostcoUrl, UrlNumber, eBayItemNumber, CostcoOldPrice, CostcoNewPrice, eBayListingOldPrice, ImageLink, Thumb)
@@ -1579,17 +1576,12 @@ namespace Crawler
             cmd.CommandText = sqlString;
             nEBayListingChangePriceDown = Convert.ToInt16(cmd.ExecuteScalar());
 
-       //     sqlString = @"INSERT INTO [dbo].[eBay_ToChange] (Name, CostcoUrlNumber, eBayItemNumber, eBayOldListingPrice, 
-							//eBayNewListingPrice, eBayReferencePrice, 
-							//CostcoOldPrice, CostcoNewPrice, PriceChange)
-       //                     SELECT l.Name, l.CostcoUrlNumber, l.eBayItemNumber, l.eBayListingPrice, l.eBayListingPrice, 
-       //                     l.eBayReferencePrice, l.CostcoPrice, r.Price, 'down'
-       //                     FROM [dbo].[eBay_CurrentListings] l, [dbo].[Staging_ProductInfo] r
-       //                     WHERE l.CostcoPrice < r.Price
-       //                     AND l.CostcoUrlNumber = r.UrlNumber";
-
-       //     cmd.CommandText = sqlString;
-       //     cmd.ExecuteNonQuery();
+            sqlString = @"  UPDATE productInfo  
+                            SET price = u.CostcoNewPrice
+                            FROM productInfo p, eBayListingChange_PriceDown u
+                            WHERE p.UrlNumber = u.UrlNumber";
+            cmd.CommandText = sqlString;
+            cmd.ExecuteNonQuery();
 
             // eBay listing discontinused 
             sqlString = @"INSERT INTO [dbo].[eBayListingChange_Discontinue] (Name, CostcoUrl, UrlNumber, eBayItemNumber)
@@ -1604,27 +1596,12 @@ namespace Crawler
             cmd.CommandText = sqlString;
             nEBayListingChangeDiscontinue = Convert.ToInt16(cmd.ExecuteScalar());
 
-            //rdr = cmd.ExecuteReader();
+            sqlString = @"  DELETE FROM productInfo
+                            WHERE UrlNumber in (SELECT UrlNumber FROM eBayListingChange_Discontinue)";
+            cmd.CommandText = sqlString;
+            cmd.ExecuteNonQuery();
 
-            //eBayListingDiscontinueddProductArray.Clear();
-
-
-            //while (rdr.Read())
-            //{
-            //    eBayListingDiscontinueddProductArray.Add("<a href='" + rdr["CostcoUrl"].ToString().Replace("'", "&#39;") + "'>" + rdr["Name"].ToString() + "</a>|" + rdr["CostcoPrice"].ToString());
-            //}
-
-            //rdr.Close();
-
-            //sqlString = @"INSERT INTO [dbo].[eBay_ToRemove] (Name, CostcoUrlNumber, eBayItemNumber)
-            //                SELECT l.Name, l.CostcoUrlNumber, l.eBayItemNumber
-            //                FROM [dbo].[eBay_CurrentListings] l
-            //                WHERE not exists 
-	           //             (SELECT 1 FROM [dbo].[Staging_ProductInfo] r where r.UrlNumber = l.CostcoUrlNumber)";
-
-            //cmd.CommandText = sqlString;
-            //cmd.ExecuteNonQuery();
-
+           
             // options change 
             sqlString = @"INSERT INTO [dbo].[eBayListingChange_OptionChange] (Name, CostcoUrl, UrlNumber, eBayItemNumber, CostcoOldOptions, CostcoNewOptions, CostcoNewImageOptions, ImageLink, Thumb)
                         select s.name as Name, s.Url as CostcoUrl, s.UrlNumber as UrlNumber, l.eBayItemNumber as eBayItemNumber, p.Options as CostcoOldOptions, s.Options as CostcoNewOptions, s.ImageOptions as CostcoNewImageOptions, p.ImageLink as ImageLink, s.Thumb as Thumb
@@ -1640,17 +1617,11 @@ namespace Crawler
             cmd.CommandText = sqlString;
             nEBayListingChangeOptions = Convert.ToInt16(cmd.ExecuteScalar());
 
-            //rdr = cmd.ExecuteReader();
-
-            //eBayListingDiscontinueddProductArray.Clear();
-
-
-            //while (rdr.Read())
-            //{
-            //    eBayListingDiscontinueddProductArray.Add("<a href='" + rdr["CostcoUrl"].ToString().Replace("'", "&#39;") + "'>" + rdr["Name"].ToString() + "</a>|" + rdr["CostcoPrice"].ToString());
-            //}
-
-            //rdr.Close();
+            sqlString = @"  UPDATE productInfo  SET Options = u.CostcoNewOptions, ImageOptions = u.CostcoNewImageOptions
+                            FROM productInfo p, eBayListingChange_OptionChange u
+                            WHERE p.UrlNumber = u.UrlNumber";
+            cmd.CommandText = sqlString;
+            cmd.ExecuteNonQuery();
 
             cn.Close();
         }
