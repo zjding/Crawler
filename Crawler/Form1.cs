@@ -167,25 +167,25 @@ namespace Crawler
             if (string.IsNullOrEmpty(connectionString))
                 SetConnectionString();
 
-            GetDepartmentArray();
+            //GetDepartmentArray();
 
-            GetProductUrls_New();
+            //GetProductUrls_New();
 
-            GetProductInfo();
+            //GetProductInfo();
 
-            SecondTry(1);
+            //SecondTry(1);
 
-            GetProductInfo(false);
+            //GetProductInfo(false);
 
-            SecondTry(2);
+            //SecondTry(2);
 
-            GetProductInfo(false);
+            //GetProductInfo(false);
 
-            PopulateTables();
+            //PopulateTables();
 
             CompareProducts();
 
-            ArchieveProducts();
+            //ArchieveProducts();
 
             endDT = DateTime.Now;
 
@@ -277,6 +277,27 @@ namespace Crawler
             { 
                 AddProductUrls(pl);
             }
+
+            SqlConnection cn = new SqlConnection(connectionString);
+            SqlCommand cmd = new SqlCommand();
+            cmd.Connection = cn;
+            cn.Open();
+
+            string sqlString = @"select CostcoUrl 
+                                from eBay_CurrentListings 
+                                where DeleteDT is NULL ";
+
+            cmd.CommandText = sqlString;
+            SqlDataReader rdr = cmd.ExecuteReader();
+
+            while (rdr.Read())
+            {
+                if (!productUrlArray.Contains(rdr["CostcoUrl"].ToString()))
+                    productUrlArray.Add(rdr["CostcoUrl"].ToString());
+            }
+
+            rdr.Close();
+            cn.Close();
 
             nScanProducts = productUrlArray.Count;
 
