@@ -167,25 +167,25 @@ namespace Crawler
             if (string.IsNullOrEmpty(connectionString))
                 SetConnectionString();
 
-            //GetDepartmentArray();
+            GetDepartmentArray();
 
-            //GetProductUrls_New();
+            GetProductUrls_New();
 
-            //GetProductInfo();
+            GetProductInfo();
 
-            //SecondTry(1);
+            SecondTry(1);
 
-            //GetProductInfo(false);
+            GetProductInfo(false);
 
-            //SecondTry(2);
+            SecondTry(2);
 
-            //GetProductInfo(false);
+            GetProductInfo(false);
 
-            //PopulateTables();
+            PopulateTables();
 
             CompareProducts();
 
-            //ArchieveProducts();
+            ArchieveProducts();
 
             endDT = DateTime.Now;
 
@@ -1606,7 +1606,7 @@ namespace Crawler
 
             // eBay listing discontinused 
             sqlString = @"INSERT INTO [dbo].[eBayListingChange_Discontinue] (Name, CostcoUrl, UrlNumber, eBayItemNumber)
-                        SELECT p.name, p.CostcoUrl, p.CostcoUrlNumber, p.CostcoUrlNumber
+                        SELECT p.name, p.CostcoUrl, p.CostcoUrlNumber, p.eBayItemNumber
                         FROM [dbo].[eBay_CurrentListings] p
                         WHERE not exists (SELECT 1 FROM Staging_ProductInfo sp where sp.UrlNumber = p.CostcoUrlNumber)
                         AND p.DeleteDT is NULL";
