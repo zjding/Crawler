@@ -80,6 +80,8 @@ namespace Crawler
         {
             SetConnectionString();
 
+            //addProduct("http://www.costco.com/Bose%C2%AE-SoundLink%C2%AE-Mini-Bluetooth-Speaker.product.100222146.html");
+
             runCrawl();
 
             //int nEBayListingChangePriceUp = 0;
@@ -150,6 +152,35 @@ namespace Crawler
             }
 
             rdr.Close();
+            cn.Close();
+        }
+
+        public void addProduct(string productUrl)
+        {
+            if (string.IsNullOrEmpty(connectionString))
+                SetConnectionString();
+
+            SqlConnection cn = new SqlConnection(connectionString);
+            SqlCommand cmd = new SqlCommand();
+            cmd.Connection = cn;
+
+            cn.Open();
+
+            string sqlString = @"TRUNCATE table Raw_ProductInfo";
+            cmd.CommandText = sqlString;
+            cmd.ExecuteNonQuery();
+
+            productUrlArray.Clear();
+            productUrlArray.Add(productUrl);
+            GetProductInfo(false, false);
+            PopulateTables();
+
+            sqlString = @"insert into [dbo].[ProductInfo] (Name, urlNumber, itemnumber, Category, price, shipping, discount, details, specification, imageLink, imageOptions, url, options, Thumb)
+                        select distinct Name, urlNumber, itemnumber, Category, price, shipping, discount, details, specification, imageLink, imageOptions, url, options, Thumb
+                        from  dbo.staging_productInfo";
+            cmd.CommandText = sqlString;
+            cmd.ExecuteNonQuery();
+
             cn.Close();
         }
 
@@ -1884,5 +1915,7 @@ namespace Crawler
             }
 
         }
+
+        
     }
 }
