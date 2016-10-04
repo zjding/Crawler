@@ -768,7 +768,9 @@ namespace Crawler
                             {
                                 shipping = eShipping.Text.Replace("Shipping & Handling", "");
                                 shipping = shipping.Replace("Shipping and Handling", "");
+                                shipping = shipping.Replace("Shipping Handling", "");
                                 shipping = shipping.Replace("Shipping & Handing", "");
+                                shipping = shipping.Replace("Shipping and Handeling", "");
                                 shipping = shipping.Replace(":", "");
                                 shipping = shipping.Replace("$", "");
                                 shipping = shipping.Replace("*", "");
