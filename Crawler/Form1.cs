@@ -190,7 +190,7 @@ namespace Crawler
 
             //// test
             //productUrlArray.Clear();
-            //productUrlArray.Add("http://www.costco.com/32-Degrees-Men's-5-Pocket-Performance-Pant.product.100250109.html");
+            //productUrlArray.Add("http://www.costco.com/vitafusion-SleepWell-250-Gummies.product.100001253.html");
             ////productUrlArray.Add(@"file:///C:/Users/Jason%20Ding/Desktop/Jura%20Impressa%20F7%20Automatic%20Coffee%20Center.html");
             //GetProductInfo(false);
             ////end test
@@ -442,7 +442,7 @@ namespace Crawler
                 driver = new ChromeDriver();
                 driver.Navigate().GoToUrl("https://www.costco.com/LogonForm");
                 IWebElement logonForm = driver.FindElement(By.Id("LogonForm"));
-                logonForm.FindElement(By.Id("logonId")).SendKeys("zjding@gmail.com");
+                logonForm.FindElement(By.Id("logonId")).SendKeys("zjding@outlook.com");
                 logonForm.FindElement(By.Id("logonPassword")).SendKeys("721123");
                 logonForm.FindElement(By.ClassName("submit")).Click();
             }
@@ -739,12 +739,12 @@ namespace Crawler
                     {
                         IWebElement eMarketing = eProductDetails.FindElement(By.ClassName("marketing-container"));
 
-                        string merchandisingText = hasElement(eMarketing, By.ClassName("merchandisingText")) ?
-                                                    eMarketing.FindElement(By.ClassName("merchandisingText")).Text : "";
+                        string merchandisingText = hasElement(driver, By.ClassName("merchandisingText")) ?
+                                                    driver.FindElement(By.ClassName("merchandisingText")).Text : "";
                         merchandisingText = merchandisingText.Replace("Free Shipping", "").Trim();
 
-                        string promotionalText = hasElement(eMarketing, By.ClassName("PromotionalText")) ?
-                                                    eMarketing.FindElement(By.ClassName("PromotionalText")).Text : "";
+                        string promotionalText = hasElement(driver, By.ClassName("PromotionalText")) ?
+                                                    driver.FindElement(By.ClassName("PromotionalText")).Text : "";
                         promotionalText = promotionalText.Replace("Free Shipping", "").Trim();
 
                         if (merchandisingText + promotionalText != string.Empty)
