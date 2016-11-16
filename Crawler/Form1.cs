@@ -80,15 +80,15 @@ namespace Crawler
         {
             SetConnectionString();
 
-            //addProduct("http://www.costco.com/Bose%C2%AE-SoundLink%C2%AE-Mini-Bluetooth-Speaker.product.100222146.html");
+            //addProduct("http://www.costco.com/Kirkland-Signature-Hair-Regrowth-Treatment-Extra-Strength-for-Men-5%25-Minoxidil-Topical-Solution%2c-6-pack.product.11501138.html");
+
+            int nEBayListingChangePriceUp = 0;
+            int nEBayListingChangePriceDown = 0;
+            int nEBayListingChangeDiscontinue = 0;
+            int nEBayListingChangeOptions = 0;
+            CheckEBayListing(out nEBayListingChangePriceUp, out nEBayListingChangePriceDown, out nEBayListingChangeDiscontinue, out nEBayListingChangeOptions);
 
             runCrawl();
-
-            //int nEBayListingChangePriceUp = 0;
-            //int nEBayListingChangePriceDown = 0;
-            //int nEBayListingChangeDiscontinue = 0;
-            //int nEBayListingChangeOptions = 0;
-            //CheckEBayListing(out nEBayListingChangePriceUp, out nEBayListingChangePriceDown, out nEBayListingChangeDiscontinue, out nEBayListingChangeOptions);
 
             this.Close();
         }
