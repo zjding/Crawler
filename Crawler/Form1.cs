@@ -436,9 +436,10 @@ namespace Crawler
 
             }
 
-            //driver = new FirefoxDriver(new FirefoxBinary(), new FirefoxProfile(), TimeSpan.FromSeconds(180));
-            if (productUrlArray.Count > 0)
+                if (productUrlArray.Count > 0)
             {
+                //driver = new FirefoxDriver(new FirefoxBinary(), new FirefoxProfile(), TimeSpan.FromSeconds(180));
+
                 driver = new ChromeDriver();
                 driver.Navigate().GoToUrl("https://www.costco.com/LogonForm");
                 IWebElement logonForm = driver.FindElement(By.Id("LogonForm"));
